@@ -1,0 +1,241 @@
+// ============================================
+//   FUTMINNA Campus Navigator Bot
+//   Developed by DTZ Trio
+// ============================================
+
+const TelegramBot = require("node-telegram-bot-api");
+
+// PASTE YOUR BOT TOKEN FROM BOTFATHER BELOW
+const TOKEN = "YOUR_BOT_TOKEN_HERE";
+
+const bot = new TelegramBot(TOKEN, { polling: true });
+
+console.log("✅ FUTMINNA Navigator Bot is running...");
+console.log("📍 Developed by DTZ Trio");
+
+const LOCATIONS = [
+  { id: "saat", name: "SAAT Building", full: "School of Agriculture & Agricultural Technology", emoji: "🌾", campus: "main", category: "school", coords: "9.5418°N, 6.4672°E", desc: "Agricultural Science, Crop Production, Soil Science, Food Science & Technology.", directions: "Enter Main Gate → Follow tarred road left → SAAT is on your right after the roundabout." },
+  { id: "seet", name: "SEET Building", full: "School of Electrical Engineering & Technology", emoji: "⚡", campus: "main", category: "school", coords: "9.5425°N, 6.4665°E", desc: "Electrical Engineering, Telecommunications, Computer Engineering, Mechatronics.", directions: "From Main Gate → Straight on main road → SEET is second block on the left past the library." },
+  { id: "set", name: "SET Building", full: "School of Environmental Technology", emoji: "🏗️", campus: "main", category: "school", coords: "9.5430°N, 6.4678°E", desc: "Architecture, Estate Management, Quantity Surveying, Urban & Regional Planning.", directions: "From Main Gate → Straight → At Y-junction go right → SET is ahead on the left." },
+  { id: "sls", name: "SLS Building", full: "School of Life Sciences", emoji: "🧬", campus: "main", category: "school", coords: "9.5412°N, 6.4685°E", desc: "Biochemistry, Biology, Microbiology, and Biotechnology programmes.", directions: "From Main Gate → First left → SLS is behind the IBB Library complex." },
+  { id: "sps", name: "SPS Building", full: "School of Physical Sciences", emoji: "⚗️", campus: "main", category: "school", coords: "9.5408°N, 6.4690°E", desc: "Physics, Chemistry, Mathematics, Computer Science, and Geology.", directions: "From Main Gate → First left → Past SLS → SPS is the next block south." },
+  { id: "sipet", name: "SIPET Building", full: "School of Infrastructure, Process Engineering & Technology", emoji: "🔧", campus: "main", category: "school", coords: "9.5435°N, 6.4670°E", desc: "Civil, Mechanical, Chemical, and Metallurgical Engineering.", directions: "From Main Gate → Straight → Past SEET → SIPET is at the engineering cluster." },
+  { id: "sit", name: "SIT Building", full: "School of Innovative Technology", emoji: "💡", campus: "main", category: "school", coords: "9.5422°N, 6.4682°E", desc: "Business Administration, Accounting, Marketing, Entrepreneurship.", directions: "From Main Gate → Main road → SIT is near the convocation square." },
+  { id: "sict", name: "SICT Building", full: "School of Information & Communication Technology", emoji: "💻", campus: "main", category: "school", coords: "9.5416°N, 6.4675°E", desc: "Cyber Security, Information Technology, Software Engineering, Data Science.", directions: "From Main Gate → Straight → SICT is next to the Computer Centre." },
+  { id: "sste", name: "SSTE Building", full: "School of Science & Technology Education", emoji: "📚", campus: "bosso", category: "school", coords: "9.5836°N, 6.5463°E", desc: "Trains educators in science and technology. Located at Bosso Campus.", directions: "Bosso Campus: Enter main gate → Follow road right → SSTE is in the east wing." },
+  { id: "senate", name: "Senate Building", full: "Senate Building / Vice-Chancellor's Office", emoji: "🏛️", campus: "main", category: "admin", coords: "9.5428°N, 6.4668°E", desc: "Main administrative hub. Houses the Vice-Chancellor, Registrar, and University Council.", directions: "From Main Gate → Follow main road → Senate Building is at the heart of campus." },
+  { id: "library", name: "IBB Library", full: "Ibrahim Badamasi Babangida Library", emoji: "📖", campus: "main", category: "facility", coords: "9.5420°N, 6.4671°E", desc: "University library with digital resources and research databases. Established 1984.", directions: "From Main Gate → 200m straight → Library is on your right." },
+  { id: "hospital", name: "School Hospital", full: "University Health Centre", emoji: "🏥", campus: "main", category: "facility", coords: "9.5415°N, 6.4680°E", desc: "Healthcare services for students and staff.", directions: "From Main Gate → First left turn → Hospital is on the right side." },
+  { id: "sports", name: "Sports Complex", full: "School Sports Area & Recreation Centre", emoji: "⚽", campus: "main", category: "facility", coords: "9.5410°N, 6.4675°E", desc: "Football pitch, basketball courts, athletics track.", directions: "From Main Gate → Main road → Bear left at junction → Sports complex at the far end." },
+  { id: "computer", name: "Computer Centre", full: "University Computer Centre", emoji: "🖥️", campus: "main", category: "facility", coords: "9.5417°N, 6.4674°E", desc: "ICT facility with computer access, internet, and e-learning support.", directions: "From Main Gate → Straight → Computer Centre is near SICT on your left." },
+  { id: "hostels", name: "Student Hostels", full: "Student Accommodation Hostels", emoji: "🏠", campus: "main", category: "facility", coords: "9.5405°N, 6.4695°E", desc: "Male and female halls of residence. Gated and secured.", directions: "From Main Gate → Bear right past sports area → Hostels at the south end." },
+  { id: "studcenter", name: "Student Centre", full: "Students Union Centre", emoji: "🏬", campus: "main", category: "facility", coords: "9.5419°N, 6.4677°E", desc: "Cafeterias, mini-markets, and student union offices.", directions: "From Main Gate → Straight → Student Centre is on the main road." },
+  { id: "convocation", name: "Convocation Square", full: "Convocation Square / Auditorium", emoji: "🎓", campus: "main", category: "landmark", coords: "9.5424°N, 6.4673°E", desc: "Ceremonial ground for graduation and university events.", directions: "From Main Gate → Main road → 120m west of the Senate Building." },
+  { id: "maingate", name: "Main Gate", full: "Gidan Kwano Main Entrance Gate", emoji: "🚪", campus: "main", category: "landmark", coords: "9.5440°N, 6.4660°E", desc: "Primary entrance off the Minna-Bida Road. Security checkpoint.", directions: "Accessible directly from Minna-Kataeregi-Bida Road." },
+];
+
+function locationDetails(loc) {
+  return (
+    loc.emoji + " *" + loc.name + "*\n" +
+    "_" + loc.full + "_\n\n" +
+    loc.desc + "\n\n" +
+    "📍 *Campus:* " + (loc.campus === "main" ? "Gidan Kwano (Main)" : "Bosso Campus") + "\n" +
+    "🗺️ *Coords:* " + loc.coords + "\n\n" +
+    "Type /dir\\_" + loc.id + " for directions"
+  );
+}
+
+function directionsText(loc) {
+  return (
+    "🧭 *Directions to " + loc.name + "*\n" +
+    "_" + loc.full + "_\n\n" +
+    loc.directions + "\n\n" +
+    "📍 *Campus:* " + (loc.campus === "main" ? "Gidan Kwano (Main)" : "Bosso Campus") + "\n" +
+    "🗺️ *Coords:* " + loc.coords
+  );
+}
+
+const menuKeyboard = {
+  reply_markup: {
+    keyboard: [
+      ["🎓 Schools", "🏥 Facilities"],
+      ["📌 Landmarks", "🏛️ Administration"],
+      ["🗺️ Campus Info", "ℹ️ About"],
+      ["❓ Help"]
+    ],
+    resize_keyboard: true,
+  },
+  parse_mode: "Markdown",
+};
+
+bot.onText(/\/start/, (msg) => {
+  const name = msg.from.first_name || "there";
+  bot.sendMessage(
+    msg.chat.id,
+    "👋 Hello *" + name + "!*\n\n" +
+    "Welcome to the *FUTMINNA Campus Navigator Bot!*\n\n" +
+    "I help you find any building or facility on campus.\n\n" +
+    "🔍 *How to use:*\n" +
+    "• Tap a button from the menu below\n" +
+    "• Or just type any location name\n" +
+    "• Example: type _library_ or _SEET_\n\n" +
+    "_Developed by DTZ Trio_ 🏫",
+    menuKeyboard
+  );
+});
+
+bot.onText(/\/help|❓ Help/, (msg) => {
+  bot.sendMessage(
+    msg.chat.id,
+    "📋 *Commands:*\n\n" +
+    "/schools — All academic schools\n" +
+    "/facilities — Campus facilities\n" +
+    "/landmarks — Notable landmarks\n" +
+    "/admin — Administration\n" +
+    "/campus — Campus overview\n" +
+    "/about — About FUTMINNA\n" +
+    "/find [name] — Search a location\n" +
+    "/dir\\_[id] — Directions e.g /dir\\_library\n\n" +
+    "Or just type any location name!",
+    menuKeyboard
+  );
+});
+
+bot.onText(/\/schools|🎓 Schools/, (msg) => {
+  const list = LOCATIONS.filter(l => l.category === "school");
+  let text = "🎓 *Academic Schools:*\n\n";
+  list.forEach(s => {
+    text += s.emoji + " *" + s.name + "*\n_" + s.full + "_\n\n";
+  });
+  bot.sendMessage(msg.chat.id, text, menuKeyboard);
+});
+
+bot.onText(/\/facilities|🏥 Facilities/, (msg) => {
+  const list = LOCATIONS.filter(l => l.category === "facility");
+  let text = "🏥 *Campus Facilities:*\n\n";
+  list.forEach(f => {
+    text += f.emoji + " *" + f.name + "*\n_" + f.full + "_\n\n";
+  });
+  bot.sendMessage(msg.chat.id, text, menuKeyboard);
+});
+
+bot.onText(/\/landmarks|📌 Landmarks/, (msg) => {
+  const list = LOCATIONS.filter(l => l.category === "landmark");
+  let text = "📌 *Landmarks:*\n\n";
+  list.forEach(m => {
+    text += m.emoji + " *" + m.name + "*\n_" + m.full + "_\n\n";
+  });
+  bot.sendMessage(msg.chat.id, text, menuKeyboard);
+});
+
+bot.onText(/\/admin|🏛️ Administration/, (msg) => {
+  const list = LOCATIONS.filter(l => l.category === "admin");
+  let text = "🏛️ *Administration:*\n\n";
+  list.forEach(a => {
+    text += a.emoji + " *" + a.name + "*\n_" + a.full + "_\n" + a.desc + "\n\n";
+  });
+  bot.sendMessage(msg.chat.id, text, menuKeyboard);
+});
+
+bot.onText(/\/campus|🗺️ Campus Info/, (msg) => {
+  bot.sendMessage(
+    msg.chat.id,
+    "🗺️ *FUTMINNA Campus Overview*\n\n" +
+    "🏫 *Main Campus (Gidan Kwano)*\n" +
+    "📍 9.5420°N, 6.4680°E\n" +
+    "🛣️ Minna-Kataeregi-Bida Road\n" +
+    "📐 10,650 hectares\n\n" +
+    "🏫 *Bosso Campus*\n" +
+    "📍 9.5836°N, 6.5463°E\n" +
+    "🛣️ Okada Road, Dutsen Kura\n\n" +
+    "🌐 futminna.edu.ng\n" +
+    "📧 info@futminna.edu.ng\n\n" +
+    "[📍 Main Campus on Google Maps](https://maps.google.com/?q=9.5420,6.4680)\n" +
+    "[📍 Bosso Campus on Google Maps](https://maps.google.com/?q=9.5836,6.5463)",
+    { parse_mode: "Markdown", reply_markup: menuKeyboard.reply_markup }
+  );
+});
+
+bot.onText(/\/about|ℹ️ About/, (msg) => {
+  bot.sendMessage(
+    msg.chat.id,
+    "ℹ️ *About FUTMinna*\n\n" +
+    "Established: 1st February 1983\n" +
+    "👨‍🎓 Students: 30,000+\n" +
+    "🏫 Schools: 9 academic schools\n" +
+    "🏆 Motto: _Technology for Empowerment_\n" +
+    "📍 Minna, Niger State, Nigeria\n" +
+    "🌐 futminna.edu.ng\n\n" +
+    "─────────────────\n" +
+    "🛠️ *Developed by DTZ Trio*",
+    menuKeyboard
+  );
+});
+
+bot.onText(/\/dir_(.+)/, (msg, match) => {
+  const id = match[1].toLowerCase().trim();
+  const loc = LOCATIONS.find(l => l.id === id);
+  if (loc) {
+    bot.sendMessage(msg.chat.id, directionsText(loc), menuKeyboard);
+  } else {
+    bot.sendMessage(msg.chat.id, "❓ Location not found. Try /find followed by the name.", menuKeyboard);
+  }
+});
+
+bot.onText(/\/find (.+)/, (msg, match) => {
+  const query = match[1].toLowerCase().trim();
+  const results = LOCATIONS.filter(l =>
+    l.name.toLowerCase().includes(query) ||
+    l.full.toLowerCase().includes(query) ||
+    l.id.includes(query) ||
+    l.desc.toLowerCase().includes(query)
+  );
+  if (results.length === 0) {
+    bot.sendMessage(msg.chat.id, "🤔 No results for *" + match[1] + "*. Try another keyword.", menuKeyboard);
+  } else if (results.length === 1) {
+    bot.sendMessage(msg.chat.id, locationDetails(results[0]), menuKeyboard);
+  } else {
+    let text = "🔍 *Results for " + match[1] + ":*\n\n";
+    results.slice(0, 8).forEach(r => {
+      text += r.emoji + " *" + r.name + "* — " + (r.campus === "main" ? "Main Campus" : "Bosso") + "\n";
+    });
+    text += "\nType the exact name for full details.";
+    bot.sendMessage(msg.chat.id, text, menuKeyboard);
+  }
+});
+
+bot.on("message", (msg) => {
+  const text = msg.text || "";
+  if (text.startsWith("/")) return;
+  const skipButtons = ["🎓 Schools","🏥 Facilities","📌 Landmarks","🏛️ Administration","🗺️ Campus Info","ℹ️ About","❓ Help"];
+  if (skipButtons.includes(text)) return;
+
+  const query = text.toLowerCase().trim();
+  const results = LOCATIONS.filter(l =>
+    l.name.toLowerCase().includes(query) ||
+    l.full.toLowerCase().includes(query) ||
+    l.id.includes(query) ||
+    l.desc.toLowerCase().includes(query)
+  );
+
+  if (results.length === 1) {
+    bot.sendMessage(msg.chat.id, locationDetails(results[0]), menuKeyboard);
+  } else if (results.length > 1) {
+    let reply = "🔍 *Found " + results.length + " results for " + text + ":*\n\n";
+    results.slice(0, 8).forEach(r => {
+      reply += r.emoji + " *" + r.name + "* — " + (r.campus === "main" ? "Main Campus" : "Bosso") + "\n";
+    });
+    reply += "\nType the exact name for full details.";
+    bot.sendMessage(msg.chat.id, reply, menuKeyboard);
+  } else {
+    bot.sendMessage(
+      msg.chat.id,
+      "🤔 I could not find *" + text + "* on campus.\n\nTry:\n• /schools\n• /facilities\n• /find [keyword]",
+      menuKeyboard
+    );
+  }
+});
+
+bot.on("polling_error", (error) => {
+  console.error("❌ Error:", error.message);
+});
